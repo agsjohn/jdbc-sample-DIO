@@ -24,7 +24,7 @@ public class Main {
         insert.setSalary(new BigDecimal("2800"));
         insert.setBirthday(OffsetDateTime.now().minusYears(18));
         System.out.println(insert);
-        employeeDAO.insert(insert);
+        employeeDAO.insertWithProcedure(insert);
         System.out.println(insert);
 
 //        employeeDAO.findAll().forEach(System.out::println);

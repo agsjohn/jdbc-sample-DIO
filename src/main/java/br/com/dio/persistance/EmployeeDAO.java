@@ -5,6 +5,7 @@ import com.mysql.cj.jdbc.StatementImpl;
 
 import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -12,15 +13,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.time.ZoneOffset.UTC;
+import static java.util.TimeZone.LONG;
 
 public class EmployeeDAO {
     public void insert(final EmployeeEntity entity){
-        try (var cnn = ConnectionUtil.getConnection()){
-            String sql = "INSERT INTO employees (name, salary, birthday) values (?, ?, ?)";
-            var ps = cnn.prepareStatement(sql);
+        try (
+            var cnn = ConnectionUtil.getConnection();
+            var ps = cnn.prepareStatement("INSERT INTO employees (name, salary, birthday) values (?, ?, ?)")
+        ){
             ps.setString(1, entity.getName());
             ps.setBigDecimal(2, entity.getSalary());
-            ps.setTimestamp(3, formatOffsetDateTime(entity.getBirthday()));
+            ps.setTimestamp(3, Timestamp.valueOf(entity.getBirthday().atZoneSameInstant(UTC).toLocalDateTime()));
             ps.executeUpdate();
 //            System.out.printf("Foram afetados %s registros na base de dados\n", st.getUpdateCount());
             if(ps instanceof StatementImpl impl){
@@ -31,13 +34,30 @@ public class EmployeeDAO {
         }
     }
 
+    public void insertWithProcedure(final EmployeeEntity entity){
+        try (
+                var cnn = ConnectionUtil.getConnection();
+                var ps = cnn.prepareCall("call prc_insert_employee(?, ?, ?, ?)")
+        ){
+            ps.registerOutParameter(1, LONG);
+            ps.setString(2, entity.getName());
+            ps.setBigDecimal(3, entity.getSalary());
+            ps.setTimestamp(4, Timestamp.valueOf(entity.getBirthday().atZoneSameInstant(UTC).toLocalDateTime()));
+            ps.execute();
+            entity.setId(ps.getLong(1));
+        }catch (SQLException ex){
+            ex.printStackTrace();
+        }
+    }
+
     public void update(final EmployeeEntity entity){
-        try (var cnn = ConnectionUtil.getConnection()){
-            String sql = "UPDATE employees set name = ?, salary = ?, birthday = ? WHERE id = ?";
-            var ps = cnn.prepareStatement(sql);
+        try (
+            var cnn = ConnectionUtil.getConnection();
+            var ps = cnn.prepareStatement("UPDATE employees set name = ?, salary = ?, birthday = ? WHERE id = ?");
+        ){
             ps.setString(1, entity.getName());
             ps.setBigDecimal(2, entity.getSalary());
-            ps.setTimestamp(3, formatOffsetDateTime(entity.getBirthday()));
+            ps.setTimestamp(3, Timestamp.valueOf(entity.getBirthday().atZoneSameInstant(UTC).toLocalDateTime()));
             ps.setLong(4, entity.getId());
             ps.executeUpdate();
 //            System.out.printf("Foram afetados %s registros na base de dados\n", st.getUpdateCount());
@@ -50,12 +70,12 @@ public class EmployeeDAO {
     }
 
     public void delete(final long id){
-        try (var cnn = ConnectionUtil.getConnection()){
-            String sql = "DELETE FROM employees WHERE id = ?";
-            var ps = cnn.prepareStatement(sql);
+        try (
+            var cnn = ConnectionUtil.getConnection();
+            var ps = cnn.prepareStatement("DELETE FROM employees WHERE id = ?");
+        ){
             ps.setLong(1, id);
             ps.executeUpdate();
-//            System.out.printf("Foram afetados %s registros na base de dados\n", st.getUpdateCount());
         }catch (SQLException ex){
             ex.printStackTrace();
         }
@@ -85,8 +105,10 @@ public class EmployeeDAO {
 
     public EmployeeEntity findById(final long id){
         var entity = new EmployeeEntity();
-        try (var cnn = ConnectionUtil.getConnection()){
+        try (
+            var cnn = ConnectionUtil.getConnection();
             var ps = cnn.prepareStatement("SELECT * FROM employees WHERE id = ?");
+        ){
             ps.setLong(1, id);
             var rs = ps.executeQuery();
             while(rs.next()) {
@@ -100,10 +122,5 @@ public class EmployeeDAO {
             ex.printStackTrace();
         }
         return entity;
-    }
-
-    private java.sql.Timestamp formatOffsetDateTime(final OffsetDateTime dateTime) {
-        var utcDatetime = dateTime.withOffsetSameInstant(ZoneOffset.UTC);
-        return java.sql.Timestamp.from(utcDatetime.toInstant());
     }
 }
