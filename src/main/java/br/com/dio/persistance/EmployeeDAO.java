@@ -50,6 +50,29 @@ public class EmployeeDAO {
         }
     }
 
+    public void insert(final List<EmployeeEntity> entities){
+        try (var cnn = ConnectionUtil.getConnection()){
+            var sql = "INSERT INTO employees (name, salary, birthday) values (?, ?, ?)";
+            try(var ps = cnn.prepareStatement(sql)){
+                cnn.setAutoCommit(false);
+                for(int i=0; i < entities.size(); i++){
+                    ps.setString(1, entities.get(i).getName());
+                    ps.setBigDecimal(2, entities.get(i).getSalary());
+                    var timeStamp = Timestamp.valueOf(entities.get(i).getBirthday().atZoneSameInstant(UTC).toLocalDateTime());
+                    ps.setTimestamp(3, timeStamp);
+                    ps.addBatch();
+                    if(i % 1000 == 0 || i == entities.size() - 1) ps.executeBatch();
+                }
+                cnn.commit();
+            }catch (SQLException ex){
+                cnn.rollback();
+                ex.printStackTrace();
+            }
+        }catch (SQLException ex){
+            ex.printStackTrace();
+        }
+    }
+
     public void update(final EmployeeEntity entity){
         try (
             var cnn = ConnectionUtil.getConnection();
