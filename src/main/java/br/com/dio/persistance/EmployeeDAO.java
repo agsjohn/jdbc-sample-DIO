@@ -1,5 +1,6 @@
 package br.com.dio.persistance;
 
+import br.com.dio.persistance.entity.ContactEntity;
 import br.com.dio.persistance.entity.EmployeeEntity;
 import com.mysql.cj.jdbc.StatementImpl;
 
@@ -25,7 +26,6 @@ public class EmployeeDAO {
             ps.setBigDecimal(2, entity.getSalary());
             ps.setTimestamp(3, Timestamp.valueOf(entity.getBirthday().atZoneSameInstant(UTC).toLocalDateTime()));
             ps.executeUpdate();
-//            System.out.printf("Foram afetados %s registros na base de dados\n", st.getUpdateCount());
             if(ps instanceof StatementImpl impl){
                 entity.setId(impl.getLastInsertID());
             }
@@ -83,7 +83,6 @@ public class EmployeeDAO {
             ps.setTimestamp(3, Timestamp.valueOf(entity.getBirthday().atZoneSameInstant(UTC).toLocalDateTime()));
             ps.setLong(4, entity.getId());
             ps.executeUpdate();
-//            System.out.printf("Foram afetados %s registros na base de dados\n", st.getUpdateCount());
             if(ps instanceof StatementImpl impl){
                 entity.setId(impl.getLastInsertID());
             }
@@ -128,9 +127,10 @@ public class EmployeeDAO {
 
     public EmployeeEntity findById(final long id){
         var entity = new EmployeeEntity();
+        var sql = "SELECT * FROM employees e INNER JOIN contacts c ON c.employee_id = e.id WHERE e.id = ?";
         try (
             var cnn = ConnectionUtil.getConnection();
-            var ps = cnn.prepareStatement("SELECT * FROM employees WHERE id = ?");
+            var ps = cnn.prepareStatement(sql);
         ){
             ps.setLong(1, id);
             var rs = ps.executeQuery();
@@ -140,6 +140,11 @@ public class EmployeeDAO {
                 entity.setSalary(rs.getBigDecimal("salary"));
                 var birthdayInstant = rs.getTimestamp("birthday").toInstant();
                 entity.setBirthday(OffsetDateTime.ofInstant(birthdayInstant, UTC));
+                entity.setContact(new ContactEntity());
+                entity.getContact().setId(rs.getLong("c.id"));
+                entity.getContact().setDescription(rs.getString("description"));
+                entity.getContact().setType(rs.getString("type"));
+                entity.getContact().setEmployee_id(id);
             }
         }catch (SQLException ex){
             ex.printStackTrace();
