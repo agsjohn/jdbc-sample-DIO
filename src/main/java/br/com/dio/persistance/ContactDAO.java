@@ -18,6 +18,9 @@ import static java.util.TimeZone.LONG;
 
 public class ContactDAO {
     public void insert(final ContactEntity entity){
+        if(entity == null){
+            return;
+        }
         try (
                 var cnn = ConnectionUtil.getConnection();
                 var ps = cnn.prepareStatement("INSERT INTO contacts (description, type, employee_id) values (?, ?, ?)")
@@ -32,5 +35,27 @@ public class ContactDAO {
         }catch (SQLException ex){
             ex.printStackTrace();
         }
+    }
+
+    public List<ContactEntity> findByEmployeeId(final long employeeId){
+        List<ContactEntity> entities = new ArrayList<>();
+        try (var cnn = ConnectionUtil.getConnection();
+             var ps = cnn.prepareStatement("SELECT * FROM contacts WHERE employee_id = ?");
+        ){
+            ps.setLong(1, employeeId);
+            ps.executeQuery();
+            var rs = ps.getResultSet();
+            while (rs.next()){
+                var entity = new ContactEntity();
+                entity.setId(rs.getLong("id"));
+                entity.setDescription(rs.getString("description"));
+                entity.setType(rs.getString("type"));
+                entity.setEmployee_id(employeeId);
+                entities.add(entity);
+            }
+        }catch (SQLException ex){
+            ex.printStackTrace();
+        }
+        return entities;
     }
 }

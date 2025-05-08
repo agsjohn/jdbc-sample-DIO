@@ -2,6 +2,7 @@ package br.com.dio.persistance;
 
 import br.com.dio.persistance.entity.ContactEntity;
 import br.com.dio.persistance.entity.EmployeeEntity;
+import br.com.dio.persistance.entity.ModuleEntity;
 import com.mysql.cj.jdbc.StatementImpl;
 
 import java.sql.Date;
@@ -17,7 +18,13 @@ import static java.time.ZoneOffset.UTC;
 import static java.util.TimeZone.LONG;
 
 public class EmployeeDAO {
+    private final ContactDAO contactDAO = new ContactDAO();
+    private final AccessDAO accessDAO = new AccessDAO();
+
     public void insert(final EmployeeEntity entity){
+        if(entity == null){
+            return;
+        }
         try (
             var cnn = ConnectionUtil.getConnection();
             var ps = cnn.prepareStatement("INSERT INTO employees (name, salary, birthday) values (?, ?, ?)")
@@ -29,12 +36,18 @@ public class EmployeeDAO {
             if(ps instanceof StatementImpl impl){
                 entity.setId(impl.getLastInsertID());
             }
+            entity.getModules().stream()
+                    .map(ModuleEntity::getId)
+                    .forEach(m -> accessDAO.insert(entity.getId(), m));
         }catch (SQLException ex){
             ex.printStackTrace();
         }
     }
 
     public void insertWithProcedure(final EmployeeEntity entity){
+        if(entity == null){
+            return;
+        }
         try (
                 var cnn = ConnectionUtil.getConnection();
                 var ps = cnn.prepareCall("call prc_insert_employee(?, ?, ?, ?)")
@@ -51,6 +64,9 @@ public class EmployeeDAO {
     }
 
     public void insert(final List<EmployeeEntity> entities){
+        if(entities == null){
+            return;
+        }
         try (var cnn = ConnectionUtil.getConnection()){
             var sql = "INSERT INTO employees (name, salary, birthday) values (?, ?, ?)";
             try(var ps = cnn.prepareStatement(sql)){
@@ -74,6 +90,9 @@ public class EmployeeDAO {
     }
 
     public void update(final EmployeeEntity entity){
+        if(entity == null){
+            return;
+        }
         try (
             var cnn = ConnectionUtil.getConnection();
             var ps = cnn.prepareStatement("UPDATE employees set name = ?, salary = ?, birthday = ? WHERE id = ?");
@@ -117,6 +136,7 @@ public class EmployeeDAO {
                 entity.setSalary(rs.getBigDecimal("salary"));
                 var birthdayInstant = rs.getTimestamp("birthday").toInstant();
                 entity.setBirthday(OffsetDateTime.ofInstant(birthdayInstant, UTC));
+                entity.setContacts(contactDAO.findByEmployeeId(rs.getLong("id")));
                 entities.add(entity);
             }
         }catch (SQLException ex){
@@ -127,7 +147,7 @@ public class EmployeeDAO {
 
     public EmployeeEntity findById(final long id){
         var entity = new EmployeeEntity();
-        var sql = "SELECT * FROM employees e INNER JOIN contacts c ON c.employee_id = e.id WHERE e.id = ?";
+        var sql = "SELECT * FROM employees e LEFT JOIN contacts c ON c.employee_id = e.id WHERE e.id = ?";
         try (
             var cnn = ConnectionUtil.getConnection();
             var ps = cnn.prepareStatement(sql);
@@ -140,14 +160,11 @@ public class EmployeeDAO {
                 entity.setSalary(rs.getBigDecimal("salary"));
                 var birthdayInstant = rs.getTimestamp("birthday").toInstant();
                 entity.setBirthday(OffsetDateTime.ofInstant(birthdayInstant, UTC));
-                entity.setContact(new ContactEntity());
-                entity.getContact().setId(rs.getLong("c.id"));
-                entity.getContact().setDescription(rs.getString("description"));
-                entity.getContact().setType(rs.getString("type"));
-                entity.getContact().setEmployee_id(id);
+                entity.setContacts(contactDAO.findByEmployeeId(id));
             }
         }catch (SQLException ex){
             ex.printStackTrace();
+            return null;
         }
         return entity;
     }

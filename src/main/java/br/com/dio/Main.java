@@ -3,8 +3,10 @@ package br.com.dio;
 import br.com.dio.persistance.ContactDAO;
 import br.com.dio.persistance.EmployeeAuditDAO;
 import br.com.dio.persistance.EmployeeDAO;
+import br.com.dio.persistance.ModuleDAO;
 import br.com.dio.persistance.entity.ContactEntity;
 import br.com.dio.persistance.entity.EmployeeEntity;
+import br.com.dio.persistance.entity.ModuleEntity;
 import net.datafaker.Faker;
 import org.flywaydb.core.Flyway;
 
@@ -13,6 +15,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.stream.Stream;
 
@@ -23,6 +26,7 @@ public class Main {
     private final static EmployeeDAO employeeDAO = new EmployeeDAO();
     private final static EmployeeAuditDAO employeeAuditDAO = new EmployeeAuditDAO();
     private final static ContactDAO contactDAO = new ContactDAO();
+    private final static ModuleDAO moduleDAO = new ModuleDAO();
     private final static Faker faker = new Faker(Locale.of("pt", "BR"));
 
     public static void main(String[] args) {
@@ -77,6 +81,48 @@ public class Main {
 //        contact.setEmployee(employee);
 //        contactDAO.insert(contact);
 
-        System.out.println(employeeDAO.findById(1));
+//        System.out.println(employeeDAO.findById(1));
+
+//        var employee = new EmployeeEntity();
+//        employee.setName("João");
+//        employee.setSalary(new BigDecimal("3200"));
+//        employee.setBirthday(OffsetDateTime.now().minusYears(25));
+//        System.out.println(employee);
+//        employeeDAO.insert(employee);
+//        System.out.println(employee);
+//
+//        var contact1 = new ContactEntity();
+//        contact1.setDescription("miguel@miguel.com");
+//        contact1.setType("email");
+//        contact1.setEmployee_id(employee.getId());
+//        contactDAO.insert(contact1);
+//
+//        var contact2 = new ContactEntity();
+//        contact2.setDescription("331568492050");
+//        contact2.setType("celular");
+//        contact2.setEmployee_id(employee.getId());
+//        contactDAO.insert(contact2);
+
+//        System.out.println(employeeDAO.findById(2));
+//        employeeDAO.findAll().forEach(System.out::println);
+
+//        var entities = Stream.generate(() ->{
+//            var employee = new EmployeeEntity();
+//            employee.setName(faker.name().fullName());
+//            employee.setSalary(new BigDecimal(faker.number().digits(4)));
+//            employee.setBirthday(OffsetDateTime.of(LocalDate.now().minusYears(faker.number().numberBetween(40, 20)), LocalTime.MIN, UTC));
+//            employee.setModules(new ArrayList<>());
+//            var moduleAmount = faker.number().numberBetween(1, 4);
+//            for (int i = 0; i < moduleAmount; i++) {
+//                var module = new ModuleEntity();
+//                module.setId(i + 1);
+//                employee.getModules().add(module);
+//            }
+//            return employee;
+//        }).limit(3)
+//                .toList();
+//        entities.forEach(employeeDAO::insert);
+
+        moduleDAO.findAll().forEach(System.out::println);
     }
 }
